@@ -26,14 +26,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build static site
-        env:
-          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
         run: |
           mkdir -p site
           cp -r app/static/. site/
-          if [ -n "$PUBLIC_API_URL" ]; then
-            perl -0pi -e "s|https://YOUR-RENDER-SERVICE.onrender.com|$PUBLIC_API_URL|g" site/index.html
-          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

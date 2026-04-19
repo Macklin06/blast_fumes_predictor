@@ -108,20 +108,19 @@ This repo now includes [`.github/workflows/pages.yml`](.github/workflows/pages.y
 
 1. Push to `main`.
 2. In GitHub repo settings, open **Settings -> Pages** and set Source to **GitHub Actions**.
-3. In **Settings -> Secrets and variables -> Actions -> Variables**, add:
-  - `PUBLIC_API_URL` = your deployed API URL (example: `https://your-service.onrender.com`)
-4. Workflow runs and publishes to:
+3. Workflow runs and publishes to:
   - `https://<your-username>.github.io/<your-repo>/`
 
 Notes:
 
-- If `PUBLIC_API_URL` is not set, the page keeps the placeholder URL and API calls will fail.
-- Keep backend `ALLOWED_ORIGINS` broad enough (or include your GitHub Pages domain) so browser calls are allowed.
+- This GitHub Pages version is fully static and runs prediction in-browser.
+- No backend or CORS setup is required for the published page.
+- The browser model is a lightweight surrogate estimate for demo/accessibility.
 
 ## Commit and push these changes
 
 ```bash
-git add app/static/index.html app/main.py .github/workflows/pages.yml README.md
-git commit -m "Simplify frontend with sliders and add GitHub Pages deploy"
+git add app/static/index.html .github/workflows/pages.yml README.md
+git commit -m "Make frontend GitHub Pages-only with browser prediction"
 git push origin main
 ```
