@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: blast-fumes-predictor
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DGMS_MIN_WAIT_MINS
+        value: "30"

@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blast Clearance Time Predictor</title>
+  <style>
+    :root {
+      --bg-a: #f0f7ff;
+      --bg-b: #e4fbef;
+      --panel: #ffffff;
+      --ink: #0f1f35;
+      --muted: #44576e;
+      --line: #d8e5f5;
+      --accent: #0ea5e9;
+      --accent-2: #2563eb;
+      --ok: #059669;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --shadow: 0 14px 36px rgba(14, 37, 68, 0.14);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 12%, #cde9ff 0, transparent 40%),
+        radial-gradient(circle at 88% 88%, #c9f9de 0, transparent 36%),
+        linear-gradient(130deg, var(--bg-a), var(--bg-b));
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .app {
+      width: min(940px, 100%);
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid #e7eff8;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      animation: rise 0.4s ease;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.3vw, 1.85rem);
+    }
+
+    .subtitle {
+      margin: 6px 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr 320px;
+    }
+
+    .sliders {
+      display: grid;
+      gap: 10px;
+    }
+
+    .slider-row {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+    }
+
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .slider-value {
+      color: #0b4ab8;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-2);
+      cursor: pointer;
+    }
+
+    .result {
+      border: 1px solid #d7e7fb;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #f7fbff, #f1f7ff);
+      padding: 16px;
+      height: fit-content;
+      min-height: 190px;
+    }
+
+    .result-title {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .minutes {
+      margin-top: 4px;
+      font-size: 44px;
+      line-height: 1;
+      color: var(--accent-2);
+      font-weight: 800;
+    }
+
+    .compare {
+      margin-top: 12px;
+      display: grid;
+      gap: 7px;
+      font-size: 13px;
+    }
+
+    .compare-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid #e2eaf5;
+    }
+
+    .good {
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    .warn {
+      color: var(--warn);
+      font-weight: 700;
+    }
+
+    .actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 13px;
+      font-weight: 700;
+      color: #ffffff;
+      cursor: pointer;
+      background: linear-gradient(120deg, var(--accent-2), var(--accent));
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .error {
+      margin-top: 8px;
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @keyframes rise {
+      from {
+        transform: translateY(8px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .minutes {
+        font-size: 38px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Blast Clearance Time Predictor</h1>
+    <p class="subtitle">Drag the sliders and predict. Output only shows model minutes with fixed 30 and 45 minute comparison.</p>
+
+    <form id="predict-form">
+      <section class="layout">
+        <div class="sliders" id="sliders"></div>
+
+        <aside class="result">
+          <div class="result-title">Predicted Wait Time</div>
+          <div class="minutes" id="minutes">--</div>
+          <div class="compare" id="compare"></div>
+          <div class="actions">
+            <button type="submit">Predict</button>
+            <span class="status" id="status">Ready</span>
+          </div>
+          <div class="error" id="error"></div>
+        </aside>
+      </section>
+    </form>
+  </main>
+
+  <script>
+    const sliderConfig = [
+      { key: "heading_area_m2", label: "Heading area (m2)", min: 9, max: 25, step: 0.1, value: 15 },
+      { key: "heading_length_m", label: "Heading length (m)", min: 30, max: 150, step: 0.1, value: 92.3 },
+      { key: "explosive_kg", label: "Explosive (kg)", min: 30, max: 150, step: 0.1, value: 110.7 },
+      { key: "fan_capacity_m3s", label: "Fan capacity (m3/s)", min: 5, max: 20, step: 0.1, value: 14 },
+      { key: "duct_distance_from_face_m", label: "Duct distance from face (m)", min: 5, max: 25, step: 0.1, value: 18 },
+      { key: "temperature_c", label: "Temperature (C)", min: 25, max: 38, step: 0.1, value: 32.1 },
+      { key: "humidity_pct", label: "Humidity (%)", min: 60, max: 95, step: 0.1, value: 92 }
+    ];
+
+    const fixed30 = 30;
+    const fixed45 = 45;
+    const slidersRoot = document.getElementById("sliders");
+    const form = document.getElementById("predict-form");
+    const minutesEl = document.getElementById("minutes");
+    const compareEl = document.getElementById("compare");
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const API_BASE = window.location.hostname.includes("github.io")
+      ? "https://YOUR-RENDER-SERVICE.onrender.com"
+      : "";
+
+    let predictTimer = null;
+
+    function buildSliders() {
+      for (const item of sliderConfig) {
+        const wrap = document.createElement("div");
+        wrap.className = "slider-row";
+        wrap.innerHTML = `
+          <div class="slider-head">
+            <span>${item.label}</span>
+            <span class="slider-value" id="val-${item.key}">${Number(item.value).toFixed(1)}</span>
+          </div>
+          <input
+            id="${item.key}"
+            name="${item.key}"
+            type="range"
+            min="${item.min}"
+            max="${item.max}"
+            step="${item.step}"
+            value="${item.value}"
+          />`;
+
+        slidersRoot.appendChild(wrap);
+        const slider = wrap.querySelector("input");
+        const valueNode = wrap.querySelector(`#val-${item.key}`);
+
+        slider.addEventListener("input", () => {
+          valueNode.textContent = Number(slider.value).toFixed(1);
+          debouncePredict();
+        });
+      }
+    }
+
+    function getPayload() {
+      const payload = {};
+      for (const item of sliderConfig) {
+        payload[item.key] = Number(document.getElementById(item.key).value);
+      }
+      return payload;
+    }
+
+    function renderComparison(predicted) {
+      const delta30 = (predicted - fixed30).toFixed(1);
+      const delta45 = (predicted - fixed45).toFixed(1);
+      compareEl.innerHTML = `
+        <div class="compare-item">
+          <span>vs 30 min</span>
+          <span class="${predicted <= fixed30 ? "good" : "warn"}">${delta30} min</span>
+        </div>
+        <div class="compare-item">
+          <span>vs 45 min</span>
+          <span class="${predicted <= fixed45 ? "good" : "warn"}">${delta45} min</span>
+        </div>
+      `;
+    }
+
+    async function predict() {
+      errorEl.textContent = "";
+      statusEl.textContent = "Predicting...";
+
+      if (API_BASE.includes("YOUR-RENDER-SERVICE")) {
+        statusEl.textContent = "Set your deployed API URL for GitHub Pages.";
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/predict_clearance`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(getPayload())
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || "Request failed");
+        }
+
+        const predicted = Number(data.model_predicted_time_mins || 0);
+        minutesEl.textContent = `${predicted.toFixed(0)} min`;
+        renderComparison(predicted);
+        statusEl.textContent = "Updated";
+      } catch (error) {
+        statusEl.textContent = "Error";
+        errorEl.textContent = error.message;
+      }
+    }
+
+    function debouncePredict() {
+      clearTimeout(predictTimer);
+      predictTimer = setTimeout(predict, 250);
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      predict();
+    });
+
+    buildSliders();
+    predict();
+  </script>
+</body>
+</html>
